@@ -197,7 +197,7 @@ GameManager.prototype.move = function (direction) {
 					var cellR = { x: x+4, y: y };
 					var tileR = self.grid.cellContent(cellR);
 					
-					if(tileR %% tileR.value == 'r'){
+					if(tileR && tileR.value == 'r'){
 						self.won = true;
 					}
 				}
