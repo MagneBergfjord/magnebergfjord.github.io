@@ -206,6 +206,36 @@ GameManager.prototype.move = function (direction) {
     });
   });
 
+	traversals.x.forEach(function (x) {
+	traversals.y.forEach(function (y) {
+      cellE = { x: x, y: y };
+      tileE = self.grid.cellContent(cellE);
+	  
+	  if(tileE && tileE.value == 'E' && cellE.y<4){
+		var cellI = { x: x, y: y+1 };
+		var tileI = self.grid.cellContent(cellI);
+		
+		if(tileI && tileI.value == 'i'){
+			var cellN = { x: x, y: y+2 };
+			var tileN = self.grid.cellContent(cellN);
+			
+			if(tileN && tileN.value == 'n'){
+				var cellA = { x: x, y: y+3 };
+				var tileA = self.grid.cellContent(cellA);
+				
+				if(tileA && tileA.value == 'a'){
+					var cellR = { x: x, y: y+4 };
+					var tileR = self.grid.cellContent(cellR);
+					
+					if(tileR && tileR.value == 'r'){
+						self.won = true;
+					}
+				}
+			}
+		}
+	  }		
+    });
+  });
 
 
   if (moved) {
