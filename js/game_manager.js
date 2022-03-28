@@ -19,7 +19,6 @@ GameManager.prototype.restart = function () {
   this.setup();
 };
 
-
 // Keep playing after winning
 GameManager.prototype.keepPlaying = function () {
   this.keepPlaying = true;
@@ -207,7 +206,9 @@ GameManager.prototype.move = function (direction) {
     });
   });
 
-if (moved) {
+
+
+  if (moved) {
     this.addRandomTile();
 
     if (!this.movesAvailable()) {
