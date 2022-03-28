@@ -19,6 +19,7 @@ GameManager.prototype.restart = function () {
   this.setup();
 };
 
+
 // Keep playing after winning
 GameManager.prototype.keepPlaying = function () {
   this.keepPlaying = true;
@@ -175,7 +176,38 @@ GameManager.prototype.move = function (direction) {
     });
   });
 
-  if (moved) {
+  traversals.y.forEach(function (y) {
+	traversals.x.forEach(function (x) {
+      cellE = { x: x, y: y };
+      tileE = self.grid.cellContent(cellE);
+	  
+	  if(tileE && tileE.value == 'E' && cellE.x<4){
+		var cellI = { x: x+1, y: y };
+		var tileI = self.grid.cellContent(cellI);
+		
+		if(tileI && tileI.value == 'i'){
+			var cellN = { x: x+2, y: y };
+			var tileN = self.grid.cellContent(cellN);
+			
+			if(tileN && tileN.value == 'n'){
+				var cellA = { x: x+3, y: y };
+				var tileA = self.grid.cellContent(cellA);
+				
+				if(tileA && tileA.value == 'a'){
+					var cellR = { x: x+4, y: y };
+					var tileR = self.grid.cellContent(cellR);
+					
+					if(tileR %% tileR.value == 'r'){
+						self.won = true;
+					}
+				}
+			}
+		}
+	  }		
+    });
+  });
+
+if (moved) {
     this.addRandomTile();
 
     if (!this.movesAvailable()) {
