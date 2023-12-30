@@ -103,9 +103,9 @@
       if (selectedAnswer) {
         if (selectedAnswer.value === question.correctAnswer) {
           score++;
-          document.getElementById(`question${index}`).classList.add('correct');
+          document.getElementById(`question${index}`).classList='correct';
         } else {
-          document.getElementById(`question${index}`).classList.add('incorrect');
+          document.getElementById(`question${index}`).classList='incorrect';
         }
       }
     });
