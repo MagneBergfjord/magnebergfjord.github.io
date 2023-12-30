@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Quiz med JavaScript</title>
+  <style>
+    .correct {
+      color: green;
+    }
+    .incorrect {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Quiz</h1>
+
+<div id="quiz"></div>
+<button id="submit">Sjekk svar</button> <span id="result"></span>
+
+<script>
+  // Definer spørsmål og svaralternativer
+  const questions = [
+    {
+      question: "Hva er hovedstaden i Norge?",
+      answers: ["Oslo", "Stockholm", "København", "Helsinki"],
+      correctAnswer: "Oslo"
+    },
+    {
+      question: "Hva er verdens største hav?",
+      answers: ["Det indiske havet", "Stillehavet", "Atlanterhavet", "Det sørlige hav"],
+      correctAnswer: "Stillehavet"
+    },
+    {
+      question: "Hva er verdens største fjell?",
+      answers: ["Mount Everest", "Kanchenjunga","Makalu","K2","Dhaulagiri"],
+      correctAnswer: "Mount Everest"
+    },
+    {
+      question: "Hvor mange kvadratmil er Sør-Amerika?",
+      answers: ["6.89 millioner", "4.55 millioner","1.9 millioner","12.6 millioner"],
+      correctAnswer: "6.89 millioner"
+    },
+    {
+      question: "Hvor dyp er Marianergropen?",
+      answers: ["11423 meter", "10994 meter","12441 meter","11078 meter"],
+      correctAnswer: "10994 meter"
+    },
+	{
+      question: "Hvor gammel er Tønsberg?",
+      answers: ["1324 år", "1151 år","1076 år","10760 år"],
+      correctAnswer: "1151 år"
+    },
+	{
+      question: "Hvor høy var verdens høyeste person noensinne?",
+      answers: ["270 cm", "272 cm","280 cm","283 cm"],
+      correctAnswer: "272 cm"
+    },
+    {
+      question: "Hva er hovedstaden i Forente Arabiske Emirater?",
+      answers: ["Macai", "Doha","Abu Dhabi","Dubai"],
+      correctAnswer: "Abu Dhabi"
+    },
+    {
+      question: "Hva er hovedstaden i Jemen?",
+      answers: ["Muscat", "Jerevan","Macai","Sanaa"],
+      correctAnswer: "Sanaa"
+    },
+    {
+      question: "Hvem malte Mona Lisa?",
+      answers: ["Vincent van Gogh", "Leonardo da Vinci", "Pablo Picasso", "Michelangelo"],
+      correctAnswer: "Leonardo da Vinci"
+    }
+  ];
+
+  const quizContainer = document.getElementById('quiz');
+  const resultContainer = document.getElementById('result');
+  const submitButton = document.getElementById('submit');
+
+  // Vis spørsmål og svaralternativer på nettsiden
+  function displayQuiz() {
+    let quizHTML = '';
+    questions.forEach((question, index) => {
+      quizHTML += `<div id="question${index}">
+                    <p>${index + 1}. ${question.question}</p>
+                    <ul>`;
+      question.answers.forEach((answer, ansIndex) => {
+        quizHTML += `<li>
+                      <input type="radio" name="question${index}" value="${answer}" id="q${index}_a${ansIndex}">
+                      <label for="q${index}_a${ansIndex}">${answer}</label>
+                    </li>`;
+      });
+      quizHTML += `</ul></div>`;
+    });
+    quizContainer.innerHTML = quizHTML;
+  }
+
+  // Sjekk svar når brukeren klikker på "Sjekk svar"-knappen
+  function checkAnswers() {
+    let score = 0;
+    questions.forEach((question, index) => {
+      const selectedAnswer = document.querySelector(`input[name="question${index}"]:checked`);
+      if (selectedAnswer) {
+        if (selectedAnswer.value === question.correctAnswer) {
+          score++;
+          document.getElementById(`question${index}`).classList.add('correct');
+        } else {
+          document.getElementById(`question${index}`).classList.add('incorrect');
+        }
+      }
+    });
+    resultContainer.innerHTML = `Du fikk ${score} av ${questions.length} riktige.`;
+  }
+
+  // Vis quiz når siden lastes
+  displayQuiz();
+
+  // Legg til en hendelselytter for knappen som sjekker svar
+  submitButton.addEventListener('click', checkAnswers);
+</script>
+
+</body>
+</html>
