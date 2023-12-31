@@ -70,6 +70,21 @@
       question: "Hvem malte Mona Lisa?",
       answers: ["Vincent van Gogh", "Leonardo da Vinci", "Pablo Picasso", "Michelangelo"],
       correctAnswer: "Leonardo da Vinci"
+    },
+	{
+      question: "Hvem komponerte deilig er jorden?",
+      answers: ["Breslau", "Bach", "Grieg", "Lindeman"],
+      correctAnswer: "Breslau"
+    },
+{
+      question: "Hvem komponerte skjebnesymfonien?",
+      answers: ["Haydn", "Bach", "Mozart", "Beethoven"],
+      correctAnswer: "Beethoven"
+    },
+{
+      question: "Hvem vant nobels littereaurpris i 2023?",
+      answers: ["Jon Fosse", "Alvora Ingeborg", "Jo Nesbø", "Jørn Lier Horst"],
+      correctAnswer: "Jon Fosse"
     }
   ];
 
@@ -103,9 +118,9 @@
       if (selectedAnswer) {
         if (selectedAnswer.value === question.correctAnswer) {
           score++;
-          document.getElementById(`question${index}`).classList='correct';
+          document.getElementById(`question${index}`).classList = 'correct';
         } else {
-          document.getElementById(`question${index}`).classList='incorrect';
+          document.getElementById(`question${index}`).classList = 'incorrect';
         }
       }
     });
