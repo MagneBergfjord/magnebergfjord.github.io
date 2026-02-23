@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Øving – Engelske sterke verb</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      max-width: 900px;
+      margin: 24px auto;
+      padding: 0 16px;
+      line-height: 1.4;
+    }
+    .card {
+      border: 1px solid rgba(127,127,127,.35);
+      border-radius: 14px;
+      padding: 16px;
+      margin: 14px 0;
+      background: rgba(127,127,127,.06);
+    }
+    h1 { font-size: 1.4rem; margin: 0 0 8px; }
+    .inf { font-size: 1.2rem; font-weight: 700; }
+    .muted { opacity: .8; font-size: .95rem; }
+    fieldset { border: 1px dashed rgba(127,127,127,.5); border-radius: 12px; padding: 12px; }
+    legend { padding: 0 8px; font-weight: 600; }
+    .grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 720px){
+      .grid { grid-template-columns: 1fr 1fr; }
+    }
+    .choices { display: grid; gap: 8px; margin-top: 8px; }
+    label.choice {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid rgba(127,127,127,.35);
+      border-radius: 12px;
+      cursor: pointer;
+      background: rgba(127,127,127,.04);
+    }
+    label.choice:hover { background: rgba(127,127,127,.09); }
+    input[type="radio"] { transform: scale(1.1); }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    button {
+      border: 1px solid rgba(127,127,127,.45);
+      border-radius: 12px;
+      padding: 10px 14px;
+      cursor: pointer;
+      background: rgba(127,127,127,.10);
+      font-weight: 600;
+    }
+    button:hover { background: rgba(127,127,127,.16); }
+    button.primary { background: rgba(80,160,255,.25); border-color: rgba(80,160,255,.6); }
+    button.primary:hover { background: rgba(80,160,255,.33); }
+    .pill {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(127,127,127,.35);
+      background: rgba(127,127,127,.06);
+      font-size: .95rem;
+    }
+    .result {
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(127,127,127,.35);
+      background: rgba(127,127,127,.06);
+      margin-top: 10px;
+    }
+    .ok { border-color: rgba(40,170,90,.6); background: rgba(40,170,90,.15); }
+    .bad { border-color: rgba(220,70,70,.65); background: rgba(220,70,70,.14); }
+    .small { font-size: .95rem; }
+    .footer { margin-top: 18px; opacity: .85; }
+  </style>
+</head>
+
+<body>
+  <h1>Øving: Engelske sterke verb</h1>
+  <p class="muted">
+    Velg riktig <b>preteritum</b> og <b>perfektum (past participle)</b> for verbet i infinitiv.
+  </p>
+
+  <div class="card">
+    <div class="actions">
+      <span class="pill">Poeng: <b id="score">0</b> / <span id="attempts">0</span></span>
+      <span class="pill">Runde: <b id="round">1</b></span>
+      <button id="btnNew" type="button">Nytt verb</button>
+      <button id="btnReset" type="button">Nullstill</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="muted small">Infinitiv</div>
+    <div class="inf" id="infinitive">—</div>
+    <div class="muted small" id="meaning">—</div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <fieldset>
+        <legend>Preteritum (past simple)</legend>
+        <div class="choices" id="pastChoices"></div>
+      </fieldset>
+    </div>
+
+    <div class="card">
+      <fieldset>
+        <legend>Perfektum (past participle)</legend>
+        <div class="choices" id="ppChoices"></div>
+      </fieldset>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="actions">
+      <button class="primary" id="btnCheck" type="button">Sjekk svar</button>
+      <button id="btnNext" type="button" disabled>Neste</button>
+      <span class="muted small" id="hint"></span>
+    </div>
+
+    <div id="feedback" class="result" style="display:none;"></div>
+  </div>
+
+  <div class="footer muted small">
+    Tips: Du kan enkelt legge til flere verb i listen i JavaScript-koden (se <code>VERBS</code>).
+  </div>
+
+<script>
+(() => {
+  // Du kan legge til flere: {inf:"", past:"", pp:"", meaning:""}
+  const VERBS = [
+{ inf:"arise", past:"arose", pp:"arisen", meaning:"oppstå" },
+{ inf:"awake", past:"awoke", pp:"awoken", meaning:"våkne" },
+{ inf:"be", past:"was/were", pp:"been", meaning:"være" },
+{ inf:"bear", past:"bore", pp:"borne", meaning:"bære" },
+{ inf:"beat", past:"beat", pp:"beaten", meaning:"slå" },
+{ inf:"become", past:"became", pp:"become", meaning:"bli" },
+{ inf:"begin", past:"began", pp:"begun", meaning:"begynne" },
+{ inf:"bend", past:"bent", pp:"bent", meaning:"bøye" },
+{ inf:"bet", past:"bet", pp:"bet", meaning:"vedde" },
+{ inf:"bid", past:"bid", pp:"bid", meaning:"by" },
+{ inf:"bind", past:"bound", pp:"bound", meaning:"binde" },
+{ inf:"bite", past:"bit", pp:"bitten", meaning:"bite" },
+{ inf:"bleed", past:"bled", pp:"bled", meaning:"blø" },
+{ inf:"blow", past:"blew", pp:"blown", meaning:"blåse" },
+{ inf:"break", past:"broke", pp:"broken", meaning:"bryte" },
+{ inf:"breed", past:"bred", pp:"bred", meaning:"avle" },
+{ inf:"bring", past:"brought", pp:"brought", meaning:"bringe" },
+{ inf:"broadcast", past:"broadcast", pp:"broadcast", meaning:"kringkaste" },
+{ inf:"build", past:"built", pp:"built", meaning:"bygge" },
+{ inf:"burn", past:"burnt", pp:"burnt", meaning:"brenne" },
+{ inf:"burst", past:"burst", pp:"burst", meaning:"sprekke" },
+{ inf:"buy", past:"bought", pp:"bought", meaning:"kjøpe" },
+
+{ inf:"catch", past:"caught", pp:"caught", meaning:"fange" },
+{ inf:"choose", past:"chose", pp:"chosen", meaning:"velge" },
+{ inf:"come", past:"came", pp:"come", meaning:"komme" },
+{ inf:"cost", past:"cost", pp:"cost", meaning:"koste" },
+{ inf:"creep", past:"crept", pp:"crept", meaning:"krype" },
+{ inf:"cut", past:"cut", pp:"cut", meaning:"kutte" },
+
+{ inf:"deal", past:"dealt", pp:"dealt", meaning:"dele ut / håndtere" },
+{ inf:"dig", past:"dug", pp:"dug", meaning:"grave" },
+{ inf:"do", past:"did", pp:"done", meaning:"gjøre" },
+{ inf:"draw", past:"drew", pp:"drawn", meaning:"tegne" },
+{ inf:"dream", past:"dreamt", pp:"dreamt", meaning:"drømme" },
+{ inf:"drink", past:"drank", pp:"drunk", meaning:"drikke" },
+{ inf:"drive", past:"drove", pp:"driven", meaning:"kjøre" },
+
+{ inf:"eat", past:"ate", pp:"eaten", meaning:"spise" },
+
+{ inf:"fall", past:"fell", pp:"fallen", meaning:"falle" },
+{ inf:"feed", past:"fed", pp:"fed", meaning:"mate" },
+{ inf:"feel", past:"felt", pp:"felt", meaning:"føle" },
+{ inf:"fight", past:"fought", pp:"fought", meaning:"kjempe" },
+{ inf:"find", past:"found", pp:"found", meaning:"finne" },
+{ inf:"flee", past:"fled", pp:"fled", meaning:"flykte" },
+{ inf:"fly", past:"flew", pp:"flown", meaning:"fly" },
+{ inf:"forget", past:"forgot", pp:"forgotten", meaning:"glemme" },
+{ inf:"forgive", past:"forgave", pp:"forgiven", meaning:"tilgi" },
+{ inf:"freeze", past:"froze", pp:"frozen", meaning:"fryse" },
+
+{ inf:"get", past:"got", pp:"gotten", meaning:"få / bli" },
+{ inf:"give", past:"gave", pp:"given", meaning:"gi" },
+{ inf:"go", past:"went", pp:"gone", meaning:"gå / dra" },
+{ inf:"grow", past:"grew", pp:"grown", meaning:"vokse" },
+
+{ inf:"hang", past:"hung", pp:"hung", meaning:"henge" },
+{ inf:"have", past:"had", pp:"had", meaning:"ha" },
+{ inf:"hear", past:"heard", pp:"heard", meaning:"høre" },
+{ inf:"hide", past:"hid", pp:"hidden", meaning:"gjemme" },
+{ inf:"hit", past:"hit", pp:"hit", meaning:"treffe / slå" },
+{ inf:"hold", past:"held", pp:"held", meaning:"holde" },
+{ inf:"hurt", past:"hurt", pp:"hurt", meaning:"skade" },
+
+{ inf:"keep", past:"kept", pp:"kept", meaning:"beholde" },
+{ inf:"know", past:"knew", pp:"known", meaning:"vite / kjenne" },
+
+{ inf:"lay", past:"laid", pp:"laid", meaning:"legge (ned)" },
+{ inf:"lead", past:"led", pp:"led", meaning:"lede" },
+{ inf:"leave", past:"left", pp:"left", meaning:"forlate" },
+{ inf:"lend", past:"lent", pp:"lent", meaning:"låne bort" },
+{ inf:"let", past:"let", pp:"let", meaning:"la" },
+{ inf:"lie", past:"lay", pp:"lain", meaning:"ligge" },
+{ inf:"light", past:"lit", pp:"lit", meaning:"tenne" },
+{ inf:"lose", past:"lost", pp:"lost", meaning:"miste" },
+
+{ inf:"make", past:"made", pp:"made", meaning:"lage" },
+{ inf:"mean", past:"meant", pp:"meant", meaning:"mene / bety" },
+{ inf:"meet", past:"met", pp:"met", meaning:"møte" },
+
+{ inf:"pay", past:"paid", pp:"paid", meaning:"betale" },
+{ inf:"put", past:"put", pp:"put", meaning:"sette / legge" },
+
+{ inf:"read", past:"read", pp:"read", meaning:"lese" },
+{ inf:"ride", past:"rode", pp:"ridden", meaning:"ri / sykle" },
+{ inf:"ring", past:"rang", pp:"rung", meaning:"ringe" },
+{ inf:"rise", past:"rose", pp:"risen", meaning:"stige" },
+{ inf:"run", past:"ran", pp:"run", meaning:"løpe" },
+
+{ inf:"say", past:"said", pp:"said", meaning:"si" },
+{ inf:"see", past:"saw", pp:"seen", meaning:"se" },
+{ inf:"sell", past:"sold", pp:"sold", meaning:"selge" },
+{ inf:"send", past:"sent", pp:"sent", meaning:"sende" },
+{ inf:"set", past:"set", pp:"set", meaning:"sette" },
+{ inf:"shake", past:"shook", pp:"shaken", meaning:"riste" },
+{ inf:"shine", past:"shone", pp:"shone", meaning:"skinne" },
+{ inf:"shoot", past:"shot", pp:"shot", meaning:"skyte" },
+{ inf:"show", past:"showed", pp:"shown", meaning:"vise" },
+{ inf:"shut", past:"shut", pp:"shut", meaning:"lukke" },
+{ inf:"sing", past:"sang", pp:"sung", meaning:"synge" },
+{ inf:"sink", past:"sank", pp:"sunk", meaning:"synke" },
+{ inf:"sit", past:"sat", pp:"sat", meaning:"sitte" },
+{ inf:"sleep", past:"slept", pp:"slept", meaning:"sove" },
+{ inf:"speak", past:"spoke", pp:"spoken", meaning:"snakke" },
+{ inf:"spend", past:"spent", pp:"spent", meaning:"bruke (tid/penger)" },
+{ inf:"stand", past:"stood", pp:"stood", meaning:"stå" },
+{ inf:"steal", past:"stole", pp:"stolen", meaning:"stjele" },
+{ inf:"stick", past:"stuck", pp:"stuck", meaning:"stikke / sitte fast" },
+{ inf:"strike", past:"struck", pp:"struck", meaning:"slå / streike" },
+{ inf:"swear", past:"swore", pp:"sworn", meaning:"banne / sverge" },
+{ inf:"sweep", past:"swept", pp:"swept", meaning:"feie" },
+{ inf:"swim", past:"swam", pp:"swum", meaning:"svømme" },
+
+{ inf:"take", past:"took", pp:"taken", meaning:"ta" },
+{ inf:"teach", past:"taught", pp:"taught", meaning:"lære bort" },
+{ inf:"tear", past:"tore", pp:"torn", meaning:"rive" },
+{ inf:"tell", past:"told", pp:"told", meaning:"fortelle" },
+{ inf:"think", past:"thought", pp:"thought", meaning:"tenke" },
+{ inf:"throw", past:"threw", pp:"thrown", meaning:"kaste" },
+
+{ inf:"understand", past:"understood", pp:"understood", meaning:"forstå" },
+
+{ inf:"wake", past:"woke", pp:"woken", meaning:"våkne" },
+{ inf:"wear", past:"wore", pp:"worn", meaning:"ha på (klær)" },
+{ inf:"win", past:"won", pp:"won", meaning:"vinne" },
+{ inf:"write", past:"wrote", pp:"written", meaning:"skrive" }
+  ];
+
+  // UI refs
+  const $inf = document.getElementById("infinitive");
+  const $meaning = document.getElementById("meaning");
+  const $pastChoices = document.getElementById("pastChoices");
+  const $ppChoices = document.getElementById("ppChoices");
+  const $btnCheck = document.getElementById("btnCheck");
+  const $btnNext = document.getElementById("btnNext");
+  const $btnNew = document.getElementById("btnNew");
+  const $btnReset = document.getElementById("btnReset");
+  const $feedback = document.getElementById("feedback");
+  const $score = document.getElementById("score");
+  const $attempts = document.getElementById("attempts");
+  const $round = document.getElementById("round");
+  const $hint = document.getElementById("hint");
+
+  // State
+  let current = null;
+  let usedIndices = new Set();
+  let score = 0;
+  let attempts = 0;
+  let round = 1;
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function pickNewVerb() {
+    if (usedIndices.size >= VERBS.length) usedIndices = new Set();
+
+    let idx;
+    do { idx = Math.floor(Math.random() * VERBS.length); }
+    while (usedIndices.has(idx));
+
+    usedIndices.add(idx);
+    current = VERBS[idx];
+    round++;
+    $round.textContent = String(round - 1);
+  }
+
+  function uniqueOptions(correct, pool, count) {
+    const set = new Set([correct]);
+    while (set.size < count) {
+      const cand = pool[Math.floor(Math.random() * pool.length)];
+      set.add(cand);
+    }
+    return shuffle([...set]);
+  }
+
+  function renderRadioGroup(container, name, options) {
+    container.innerHTML = "";
+    options.forEach((opt, i) => {
+      const id = `${name}_${i}`;
+      const label = document.createElement("label");
+      label.className = "choice";
+      label.htmlFor = id;
+
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = name;
+      input.id = id;
+      input.value = opt;
+
+      const span = document.createElement("span");
+      span.textContent = opt;
+
+      label.appendChild(input);
+      label.appendChild(span);
+      container.appendChild(label);
+    });
+  }
+
+  function getSelected(name) {
+    const el = document.querySelector(`input[name="${name}"]:checked`);
+    return el ? el.value : null;
+  }
+
+  function setFeedback(type, html) {
+    $feedback.style.display = "block";
+    $feedback.classList.remove("ok", "bad");
+    $feedback.classList.add(type === "ok" ? "ok" : "bad");
+    $feedback.innerHTML = html;
+  }
+
+  function clearFeedback() {
+    $feedback.style.display = "none";
+    $feedback.classList.remove("ok", "bad");
+    $feedback.innerHTML = "";
+  }
+
+  function lockRadios(lock) {
+    document.querySelectorAll('input[type="radio"]').forEach(r => r.disabled = lock);
+  }
+
+  function startRound() {
+    pickNewVerb();
+
+    $inf.textContent = current.inf;
+    $meaning.textContent = `Betydning: ${current.meaning}`;
+
+    const pastPool = VERBS.map(v => v.past);
+    const ppPool = VERBS.map(v => v.pp);
+
+    const pastOpts = uniqueOptions(current.past, pastPool, 4);
+    const ppOpts = uniqueOptions(current.pp, ppPool, 4);
+
+    renderRadioGroup($pastChoices, "past", pastOpts);
+    renderRadioGroup($ppChoices, "pp", ppOpts);
+
+    clearFeedback();
+    lockRadios(false);
+    $btnNext.disabled = true;
+    $btnCheck.disabled = false;
+    $hint.textContent = "Velg ett alternativ i begge kolonner.";
+  }
+
+  function checkAnswer() {
+    const chosenPast = getSelected("past");
+    const chosenPP = getSelected("pp");
+
+    if (!chosenPast || !chosenPP) {
+      setFeedback("bad", "Du må velge <b>begge</b>: preteritum og perfektum.");
+      return;
+    }
+
+    attempts++;
+    $attempts.textContent = String(attempts);
+
+    const pastOk = chosenPast === current.past;
+    const ppOk = chosenPP === current.pp;
+
+    if (pastOk && ppOk) {
+      score++;
+      $score.textContent = String(score);
+      setFeedback("ok", `Riktig! ✅ <b>${current.inf}</b> → <b>${current.past}</b> / <b>${current.pp}</b>`);
+    } else {
+      const parts = [];
+      parts.push(`<div>Fasit: <b>${current.inf}</b> → <b>${current.past}</b> / <b>${current.pp}</b></div>`);
+      parts.push(`<div class="small muted" style="margin-top:6px">
+        Ditt svar: ${pastOk ? "✅" : "❌"} preteritum <b>${chosenPast}</b>,
+        ${ppOk ? "✅" : "❌"} perfektum <b>${chosenPP}</b>
+      </div>`);
+      setFeedback("bad", parts.join(""));
+    }
+
+    lockRadios(true);
+    $btnNext.disabled = false;
+    $btnCheck.disabled = true;
+    $hint.textContent = "Trykk «Neste» for et nytt verb.";
+  }
+
+  function resetAll() {
+    score = 0; attempts = 0; round = 1;
+    usedIndices = new Set();
+    $score.textContent = "0";
+    $attempts.textContent = "0";
+    $round.textContent = "1";
+    startRound();
+  }
+
+  // Events
+  $btnCheck.addEventListener("click", checkAnswer);
+  $btnNext.addEventListener("click", startRound);
+  $btnNew.addEventListener("click", startRound);
+  $btnReset.addEventListener("click", resetAll);
+
+  // keyboard: Enter = check / next
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      if (!$btnCheck.disabled) checkAnswer();
+      else if (!$btnNext.disabled) startRound();
+    }
+  });
+
+  // init
+  resetAll();
+})();
+</script>
+</body>
+</html>
