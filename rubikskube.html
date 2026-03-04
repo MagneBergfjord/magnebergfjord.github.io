@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Rubiks kube (3D) – ekte logikk + timer</title>
+  <style>
+    :root{
+      --bg:#0b0f14; --panel:#121a24; --text:#e8eef7; --muted:#9bb0c8; --line:#2a3a50;
+      --size: 52px;
+      --gap: 4px;
+      --stickerPad: 7px;
+      --stickerRadius: 10px;
+      --cubeRotateX: -22deg;
+      --cubeRotateY:  32deg;
+    }
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
+      background:var(--bg); color:var(--text); display:flex; justify-content:center; padding:18px;
+    }
+    .app{ width:min(1100px,100%); display:grid; grid-template-columns: 1fr; gap:14px; }
+    header{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    h1{ font-size:18px; margin:0; font-weight:700; }
+    .hint{ color:var(--muted); font-size:13px; }
+    .card{
+      background:var(--panel); border:1px solid var(--line);
+      border-radius:16px; padding:14px;
+    }
+    .layout{ display:grid; grid-template-columns: 1fr; gap:14px; }
+    @media (min-width: 920px){
+      .layout{ grid-template-columns: 1.2fr .8fr; align-items:start; }
+    }
+
+    /* --- 3D scene --- */
+    .scene{
+      height: 560px;
+      display:grid;
+      place-items:center;
+      position:relative;
+      overflow:hidden;
+      border-radius:14px;
+      background: radial-gradient(1200px 600px at 50% 25%, rgba(255,255,255,.06), rgba(255,255,255,0));
+    }
+    .viewport{
+      width:100%;
+      height:100%;
+      display:grid;
+      place-items:center;
+      perspective: 1100px;
+      perspective-origin: 50% 40%;
+      touch-action: none;
+      user-select:none;
+    }
+    .cubeRoot{
+      position:relative;
+      width: calc(3*var(--size) + 2*var(--gap));
+      height: calc(3*var(--size) + 2*var(--gap));
+      transform-style: preserve-3d;
+      transform: rotateX(var(--cubeRotateX)) rotateY(var(--cubeRotateY));
+    }
+    .world{
+      position:absolute;
+      left:50%; top:50%;
+      transform-style: preserve-3d;
+      transform: translate3d(-50%,-50%,0);
+    }
+    .cubie{
+      position:absolute;
+      width: var(--size);
+      height: var(--size);
+      transform-style: preserve-3d;
+    }
+    .cubieBody{
+      position:absolute;
+      inset:0;
+      border-radius: 14px;
+      background: rgba(0,0,0,.55);
+      box-shadow:
+        0 8px 24px rgba(0,0,0,.35),
+        inset 0 0 0 1px rgba(255,255,255,.06);
+      transform: translateZ(calc(var(--size) * 0.001));
+    }
+    .sticker{
+      position:absolute;
+      left: var(--stickerPad);
+      top:  var(--stickerPad);
+      width: calc(var(--size) - 2*var(--stickerPad));
+      height: calc(var(--size) - 2*var(--stickerPad));
+      border-radius: var(--stickerRadius);
+      box-shadow:
+        inset 0 0 0 1px rgba(0,0,0,.40),
+        inset 0 0 0 2px rgba(255,255,255,.12);
+      backface-visibility:hidden;
+    }
+    .face-U{ transform: rotateX( 90deg) translateZ(calc(var(--size)/2)); transform-style:preserve-3d; }
+    .face-D{ transform: rotateX(-90deg) translateZ(calc(var(--size)/2)); transform-style:preserve-3d; }
+    .face-F{ transform: rotateY(  0deg) translateZ(calc(var(--size)/2)); transform-style:preserve-3d; }
+    .face-B{ transform: rotateY(180deg) translateZ(calc(var(--size)/2)); transform-style:preserve-3d; }
+    .face-R{ transform: rotateY( 90deg) translateZ(calc(var(--size)/2)); transform-style:preserve-3d; }
+    .face-L{ transform: rotateY(-90deg) translateZ(calc(var(--size)/2)); transform-style:preserve-3d; }
+
+    .layerGroup{
+      position:absolute;
+      left:0; top:0;
+      width:100%;
+      height:100%;
+      transform-style: preserve-3d;
+      pointer-events:none;
+    }
+    .animating .viewport{ cursor: progress; }
+
+    /* --- controls --- */
+    .controls{ display:grid; gap:12px; }
+    .btnrow{ display:flex; flex-wrap:wrap; gap:8px; }
+    button{
+      background:#182536; color:var(--text);
+      border:1px solid var(--line);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:600;
+      letter-spacing:.2px;
+    }
+    button:hover{ filter:brightness(1.08); }
+    button:active{ transform:translateY(1px); }
+    button.secondary{ background:transparent; }
+    button:disabled{ opacity:.45; cursor:not-allowed; }
+
+    .status{
+      font-size:13px; color:var(--muted);
+      display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
+      border-top:1px solid var(--line); padding-top:10px; margin-top:2px;
+    }
+    .kbd{ font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; color:#d6e6ff; }
+    .mini{ color:var(--muted); font-size:12px; line-height:1.35; }
+
+    /* --- timer --- */
+    .timerCard{
+      display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+      padding:12px 14px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:rgba(255,255,255,0.03);
+    }
+    .time{
+      font-size:28px;
+      font-weight:800;
+      letter-spacing:.5px;
+    }
+    .time.small{ font-size:18px; font-weight:700; color:var(--muted); }
+    .badge{
+      font-size:12px; color:var(--muted);
+      border:1px solid var(--line);
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(0,0,0,.20);
+    }
+    .badge.on{ color:#d6e6ff; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Rubiks kube (3×3) – 3D + ekte logikk + timer</h1>
+      <div class="hint">
+        Dra for kamera. Tast: <span class="kbd">U R F D L B</span> (Shift = prime).
+        Timer: <span class="kbd">Space</span> start/stop, eller start automatisk ved første trekk.
+      </div>
+    </header>
+
+    <div class="layout">
+      <div class="card scene">
+        <div id="viewport" class="viewport" aria-label="3D Rubiks kube">
+          <div id="cubeRoot" class="cubeRoot">
+            <div id="world" class="world"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card controls">
+        <div class="timerCard">
+          <div>
+            <div class="hint" style="margin-bottom:4px;">Timer</div>
+            <div class="time" id="timeText">0.00</div>
+            <div class="time small">Best: <span class="kbd" id="bestText">–</span></div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+            <span class="badge" id="timerState">stopped</span>
+            <button class="secondary" id="timerStartBtn">Start</button>
+            <button class="secondary" id="timerStopBtn">Stop</button>
+            <button class="secondary" id="timerResetBtn">Nullstill</button>
+          </div>
+        </div>
+
+        <div class="mini">
+          Når kuben blir løst, stopper timeren automatisk. Scramble nullstiller også (best beholdes).
+        </div>
+
+        <div>
+          <div class="hint" style="margin-bottom:8px;">Trekk</div>
+          <div class="btnrow" id="moveButtons"></div>
+        </div>
+
+        <div>
+          <div class="hint" style="margin-bottom:8px;">Verktøy</div>
+          <div class="btnrow">
+            <button class="secondary" id="resetBtn">Reset</button>
+            <button class="secondary" id="scrambleBtn">Scramble (20)</button>
+            <button class="secondary" id="undoBtn">Angre</button>
+          </div>
+        </div>
+
+        <div class="status">
+          <div>Trekk: <span class="kbd" id="movesCount">0</span></div>
+          <div>Sist: <span class="kbd" id="lastMove">–</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ---------------------------
+  // Ekte kube-logikk
+  // ---------------------------
+  const FACES = ["U","R","F","D","L","B"];
+  const COLORS = {
+    U: "#f5f7ff",
+    D: "#ffd84a",
+    F: "#27d17f",
+    B: "#3a7bff",
+    R: "#ff4a4a",
+    L: "#ff9a3a"
+  };
+
+  function faceIndexToCoord(face, idx){
+    const r = Math.floor(idx/3);
+    const c = idx%3;
+
+    const x = c - 1;
+    const yTopDown = 1 - r;
+    const zBackFront = r - 1;
+
+    switch(face){
+      case "U": return { pos:[x, 1, zBackFront], n:[0,1,0] };
+      case "D": return { pos:[x,-1, 1 - r],     n:[0,-1,0] };
+      case "F": return { pos:[x, yTopDown, 1],  n:[0,0,1] };
+      case "B": return { pos:[x, yTopDown,-1],  n:[0,0,-1] };
+      case "R": return { pos:[1, yTopDown, 1 - c], n:[1,0,0] };
+      case "L": return { pos:[-1,yTopDown, c - 1], n:[-1,0,0] };
+    }
+  }
+
+  const keyOf = (pos,n) => `${pos[0]},${pos[1]},${pos[2]}|${n[0]},${n[1]},${n[2]}`;
+  const canonical = [];
+  const keyToId = new Map();
+
+  (function buildCanonical(){
+    let id = 0;
+    for (const face of FACES){
+      for (let i=0;i<9;i++){
+        const {pos,n} = faceIndexToCoord(face,i);
+        canonical[id] = { pos:[...pos], n:[...n], face, idx:i };
+        keyToId.set(keyOf(pos,n), id);
+        id++;
+      }
+    }
+  })();
+
+  function makeSolved(){
+    return canonical.map(s => ({
+      pos:[...s.pos],
+      n:[...s.n],
+      color: COLORS[s.face]
+    }));
+  }
+
+  function rotX([x,y,z], dir){ return dir===1 ? [x, -z,  y] : [x,  z, -y]; }
+  function rotY([x,y,z], dir){ return dir===1 ? [z,  y, -x] : [-z, y,  x]; }
+  function rotZ([x,y,z], dir){ return dir===1 ? [-y, x,  z] : [y, -x,  z]; }
+
+  const MOVE_DEF = {
+    U: { axis:"y", layer: 1, dir: -1 },
+    D: { axis:"y", layer:-1, dir: +1 },
+    F: { axis:"z", layer: 1, dir: -1 },
+    B: { axis:"z", layer:-1, dir: +1 },
+    R: { axis:"x", layer: 1, dir: -1 },
+    L: { axis:"x", layer:-1, dir: +1 },
+  };
+
+  function applyMove(state, move, prime=false){
+    const base = MOVE_DEF[move];
+    const dir = prime ? -base.dir : base.dir;
+
+    const next = state.map(s => ({ pos:[...s.pos], n:[...s.n], color:s.color }));
+    for (const s of next){
+      const [x,y,z] = s.pos;
+      const matches =
+        (base.axis==="x" && x===base.layer) ||
+        (base.axis==="y" && y===base.layer) ||
+        (base.axis==="z" && z===base.layer);
+      if (!matches) continue;
+
+      if (base.axis==="x"){ s.pos = rotX(s.pos, dir); s.n = rotX(s.n, dir); }
+      else if (base.axis==="y"){ s.pos = rotY(s.pos, dir); s.n = rotY(s.n, dir); }
+      else { s.pos = rotZ(s.pos, dir); s.n = rotZ(s.n, dir); }
+    }
+    return next;
+  }
+
+  function stateToFaceArrays(state){
+    const faces = {U:Array(9),R:Array(9),F:Array(9),D:Array(9),L:Array(9),B:Array(9)};
+    for (const s of state){
+      const id = keyToId.get(keyOf(s.pos, s.n));
+      const canon = canonical[id];
+      faces[canon.face][canon.idx] = s.color;
+    }
+    return faces;
+  }
+
+  function isSolved(state){
+    const faces = stateToFaceArrays(state);
+    for (const f of FACES){
+      const c0 = faces[f][0];
+      for (let i=1;i<9;i++){
+        if (faces[f][i] !== c0) return false;
+      }
+    }
+    return true;
+  }
+
+  // ---------------------------
+  // 3D DOM
+  // ---------------------------
+  const viewportEl = document.getElementById("viewport");
+  const cubeRootEl = document.getElementById("cubeRoot");
+  const worldEl = document.getElementById("world");
+
+  const btnsEl = document.getElementById("moveButtons");
+  const movesCountEl = document.getElementById("movesCount");
+  const lastMoveEl = document.getElementById("lastMove");
+  const resetBtn = document.getElementById("resetBtn");
+  const scrambleBtn = document.getElementById("scrambleBtn");
+  const undoBtn = document.getElementById("undoBtn");
+
+  // Timer UI
+  const timeText = document.getElementById("timeText");
+  const bestText = document.getElementById("bestText");
+  const timerState = document.getElementById("timerState");
+  const timerStartBtn = document.getElementById("timerStartBtn");
+  const timerStopBtn = document.getElementById("timerStopBtn");
+  const timerResetBtn = document.getElementById("timerResetBtn");
+
+  const MOVES = ["U","R","F","D","L","B"];
+  const moveHistory = [];
+  let moveCount = 0;
+  let cube = makeSolved();
+  let animating = false;
+
+  // Kamera-rotasjon (drag)
+  let rotXdeg = -22, rotYdeg = 32;
+  let dragging = false, lastX=0, lastY=0;
+
+  function setCamera(){
+    cubeRootEl.style.transform = `rotateX(${rotXdeg}deg) rotateY(${rotYdeg}deg)`;
+  }
+  setCamera();
+
+  viewportEl.addEventListener("pointerdown", (e) => {
+    dragging = true;
+    lastX = e.clientX; lastY = e.clientY;
+    viewportEl.setPointerCapture(e.pointerId);
+  });
+  viewportEl.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+    lastX = e.clientX; lastY = e.clientY;
+    rotYdeg += dx * 0.35;
+    rotXdeg -= dy * 0.35;
+    rotXdeg = Math.max(-75, Math.min(75, rotXdeg));
+    setCamera();
+  });
+  viewportEl.addEventListener("pointerup", () => dragging=false);
+  viewportEl.addEventListener("pointercancel", () => dragging=false);
+
+  const spacing = () => {
+    const cs = getComputedStyle(document.documentElement);
+    const size = parseFloat(cs.getPropertyValue("--size"));
+    const gap  = parseFloat(cs.getPropertyValue("--gap"));
+    return size + gap;
+  };
+
+  const cubies = new Map();
+  const cubieKey = (x,y,z) => `${x},${y},${z}`;
+
+  function createCubie(){
+    const el = document.createElement("div");
+    el.className = "cubie";
+
+    const body = document.createElement("div");
+    body.className = "cubieBody";
+    el.appendChild(body);
+
+    for (const f of FACES){
+      const s = document.createElement("div");
+      s.className = `sticker face-${f}`;
+      s.dataset.face = f;
+      s.style.background = "transparent";
+      el.appendChild(s);
+    }
+    return el;
+  }
+
+  function placeCubie(el, x,y,z){
+    const step = spacing();
+    const tx = x * step;
+    const ty = -y * step; // invert
+    const tz = z * step;
+    el.style.transform = `translate3d(${tx}px, ${ty}px, ${tz}px)`;
+    el.dataset.x = x; el.dataset.y = y; el.dataset.z = z;
+  }
+
+  function initScene(){
+    worldEl.innerHTML = "";
+    cubies.clear();
+    for (let x=-1;x<=1;x++){
+      for (let y=-1;y<=1;y++){
+        for (let z=-1;z<=1;z++){
+          const el = createCubie();
+          placeCubie(el, x,y,z);
+          worldEl.appendChild(el);
+          cubies.set(cubieKey(x,y,z), el);
+        }
+      }
+    }
+  }
+
+  function buildCubieFaceColorsFromState(state){
+    const map = new Map();
+    for (const s of state){
+      const [x,y,z] = s.pos;
+      const pk = cubieKey(x,y,z);
+      if (!map.has(pk)) map.set(pk, {});
+      const faces = map.get(pk);
+
+      const [nx,ny,nz] = s.n;
+      let face = null;
+      if (ny=== 1) face="U";
+      else if (ny===-1) face="D";
+      else if (nz=== 1) face="F";
+      else if (nz===-1) face="B";
+      else if (nx=== 1) face="R";
+      else if (nx===-1) face="L";
+
+      if (face) faces[face] = s.color;
+    }
+    return map;
+  }
+
+  function renderStickers(){
+    const faceColors = buildCubieFaceColorsFromState(cube);
+
+    for (let x=-1;x<=1;x++){
+      for (let y=-1;y<=1;y++){
+        for (let z=-1;z<=1;z++){
+          const el = cubies.get(cubieKey(x,y,z));
+          const fc = faceColors.get(cubieKey(x,y,z)) || {};
+
+          for (const sticker of el.querySelectorAll(".sticker")){
+            const f = sticker.dataset.face;
+            let outer = false;
+            if (f==="U") outer = (y=== 1);
+            if (f==="D") outer = (y===-1);
+            if (f==="F") outer = (z=== 1);
+            if (f==="B") outer = (z===-1);
+            if (f==="R") outer = (x=== 1);
+            if (f==="L") outer = (x===-1);
+
+            sticker.style.display = outer ? "block" : "none";
+            sticker.style.background = outer ? (fc[f] || "transparent") : "transparent";
+          }
+        }
+      }
+    }
+
+    movesCountEl.textContent = String(moveCount);
+  }
+
+  // ---------------------------
+  // Timer (start på første trekk, stop på solved)
+  // ---------------------------
+  let tRunning = false;
+  let tStart = 0;
+  let tElapsed = 0; // ms
+  let bestMs = null;
+  let rafId = null;
+
+  function fmt(ms){
+    const s = ms / 1000;
+    const minutes = Math.floor(s / 60);
+    const seconds = s - minutes*60;
+    if (minutes > 0) return `${minutes}:${seconds.toFixed(2).padStart(5,"0")}`;
+    return seconds.toFixed(2);
+  }
+
+  function setTimerBadge(){
+    timerState.textContent = tRunning ? "running" : "stopped";
+    timerState.classList.toggle("on", tRunning);
+  }
+
+  function renderTimer(){
+    timeText.textContent = fmt(tElapsed);
+  }
+
+  function tick(){
+    if (!tRunning) return;
+    tElapsed = performance.now() - tStart;
+    renderTimer();
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function timerStart(){
+    if (tRunning) return;
+    tRunning = true;
+    tStart = performance.now() - tElapsed;
+    setTimerBadge();
+    cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function timerStop(){
+    if (!tRunning) return;
+    tRunning = false;
+    tElapsed = performance.now() - tStart;
+    setTimerBadge();
+    cancelAnimationFrame(rafId);
+    renderTimer();
+  }
+
+  function timerReset(){
+    timerStop();
+    tElapsed = 0;
+    renderTimer();
+  }
+
+  function onSolved(){
+    timerStop();
+    if (bestMs === null || tElapsed < bestMs){
+      bestMs = tElapsed;
+      bestText.textContent = fmt(bestMs);
+    }
+  }
+
+  timerStartBtn.onclick = () => timerStart();
+  timerStopBtn.onclick = () => timerStop();
+  timerResetBtn.onclick = () => timerReset();
+  setTimerBadge();
+  renderTimer();
+
+  // ---------------------------
+  // Animasjon av lag i DOM
+  // ---------------------------
+  function axisToCss(axis){
+    if (axis==="x") return "X";
+    if (axis==="y") return "Y";
+    return "Z";
+  }
+  function selectLayerCubies(axis, layer){
+    const selected = [];
+    for (const el of cubies.values()){
+      const x = Number(el.dataset.x);
+      const y = Number(el.dataset.y);
+      const z = Number(el.dataset.z);
+      if ((axis==="x" && x===layer) || (axis==="y" && y===layer) || (axis==="z" && z===layer)){
+        selected.push(el);
+      }
+    }
+    return selected;
+  }
+
+  function setAnimating(on){
+    animating = on;
+    document.body.classList.toggle("animating", on);
+    for (const b of document.querySelectorAll("button")) b.disabled = on;
+    // (tastatur fortsatt aktivt; vi sjekker animating i doMove)
+  }
+
+  function animateMove(move, prime=false){
+    const def = MOVE_DEF[move];
+    const dir = prime ? -def.dir : def.dir;
+    const axis = def.axis;
+    const layer = def.layer;
+
+    const group = document.createElement("div");
+    group.className = "layerGroup";
+    worldEl.appendChild(group);
+
+    const layerCubies = selectLayerCubies(axis, layer);
+    for (const c of layerCubies) group.appendChild(c);
+
+    const cssAxis = axisToCss(axis);
+    const deg = 90 * dir;
+
+    group.style.transition = "transform 260ms cubic-bezier(.2,.8,.2,1)";
+    group.style.transform = "translateZ(0)";
+
+    requestAnimationFrame(() => {
+      group.getBoundingClientRect();
+      group.style.transform = `rotate${cssAxis}(${deg}deg)`;
+    });
+
+    return new Promise(resolve => {
+      group.addEventListener("transitionend", () => {
+        for (const c of layerCubies) worldEl.appendChild(c);
+        group.remove();
+        resolve();
+      }, { once:true });
+    });
+  }
+
+  function label(move, prime){ return prime ? `${move}'` : move; }
+
+  async function doMove(move, prime=false, record=true){
+    if (animating) return;
+
+    // Start timer automatisk ved første "ekte" trekk (ikke under scramble/undo)
+    if (record && !tRunning && tElapsed === 0) timerStart();
+
+    setAnimating(true);
+    await animateMove(move, prime);
+
+    cube = applyMove(cube, move, prime);
+
+    if (record){
+      moveHistory.push({ move, prime });
+      moveCount++;
+      lastMoveEl.textContent = label(move, prime);
+    }
+
+    renderStickers();
+    setAnimating(false);
+
+    if (isSolved(cube)) onSolved();
+  }
+
+  // Move-knapper
+  for (const m of MOVES){
+    const b = document.createElement("button");
+    b.textContent = m;
+    b.onclick = () => doMove(m,false,true);
+    btnsEl.appendChild(b);
+
+    const bp = document.createElement("button");
+    bp.textContent = `${m}'`;
+    bp.className = "secondary";
+    bp.onclick = () => doMove(m,true,true);
+    btnsEl.appendChild(bp);
+  }
+
+  resetBtn.onclick = () => {
+    if (animating) return;
+    cube = makeSolved();
+    moveHistory.length = 0;
+    moveCount = 0;
+    lastMoveEl.textContent = "–";
+    renderStickers();
+    timerReset();
+  };
+
+  function randomMove(){
+    const m = MOVES[Math.floor(Math.random()*MOVES.length)];
+    const prime = Math.random() < 0.5;
+    return {m, prime};
+  }
+
+  scrambleBtn.onclick = () => {
+    if (animating) return;
+    // Rask scramble (ingen anim), og nullstill timer
+    timerReset();
+    cube = makeSolved();
+    for (let i=0;i<20;i++){
+      const {m, prime} = randomMove();
+      cube = applyMove(cube, m, prime);
+    }
+    moveHistory.length = 0;
+    moveCount = 0;
+    lastMoveEl.textContent = "scramble";
+    renderStickers();
+  };
+
+  undoBtn.onclick = async () => {
+    if (animating) return;
+    const last = moveHistory.pop();
+    if (!last) return;
+    await doMove(last.move, !last.prime, false);
+    moveCount = Math.max(0, moveCount - 1);
+    lastMoveEl.textContent = "undo";
+    movesCountEl.textContent = String(moveCount);
+    // (timeren påvirkes ikke av undo; du kan stoppe med Space om du vil)
+  };
+
+  // Tastatur: U R F D L B, Shift=prime, Space=start/stop
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "Space"){
+      e.preventDefault();
+      if (tRunning) timerStop(); else timerStart();
+      return;
+    }
+    const k = e.key.toUpperCase();
+    if (!MOVES.includes(k)) return;
+    e.preventDefault();
+    doMove(k, e.shiftKey, true);
+  });
+
+  // Start
+  initScene();
+  renderStickers();
+  bestText.textContent = "–";
+})();
+</script>
+</body>
+</html>
